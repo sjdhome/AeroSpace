@@ -63,6 +63,7 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
 @MainActor func setFocus(to newFocus: LiveFocus) -> Bool {
     if _focus == newFocus.frozen { return true }
     let oldFocus = focus
+    focusDebugLog.notice("setFocus event=\(fdEvent, privacy: .public) old=\(fdFocus(oldFocus), privacy: .public) new=\(fdFocus(newFocus), privacy: .public)")
     // Normalize mruWindow when focus away from a workspace
     if oldFocus.workspace != newFocus.workspace {
         oldFocus.windowOrNil?.markAsMostRecentChild()
@@ -88,7 +89,11 @@ extension Window {
     @MainActor func toLiveFocusOrNil() -> LiveFocus? { visualWorkspace.map { LiveFocus(windowOrNil: self, workspace: $0) } }
 }
 extension Workspace {
-    @MainActor func focusWorkspace() -> Bool { setFocus(to: toLiveFocus()) }
+    @MainActor func focusWorkspace() -> Bool {
+        let target = toLiveFocus()
+        focusDebugLog.notice("focusWorkspace event=\(fdEvent, privacy: .public) ws=\(self.name, privacy: .public) target=\(fdWin(target.windowOrNil), privacy: .public) \(fdMru(self), privacy: .public)")
+        return setFocus(to: target)
+    }
 
     func toLiveFocus() -> LiveFocus {
         if let wd = mostRecentNonEmptyWindowRecursive ?? anyLeafWindowRecursive {

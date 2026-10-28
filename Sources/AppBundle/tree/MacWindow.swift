@@ -90,6 +90,7 @@ final class MacWindow: Window {
             switch parent.cases {
                 case .tilingContainer, .floatingWindowsContainer, .macosHiddenAppsWindowsContainer, .macosFullscreenWindowsContainer:
                     let deadWindowFocus = deadWindowWorkspace.toLiveFocus()
+                    focusDebugLog.notice("garbageCollect dead=\(self.windowId, privacy: .public) ws=\(deadWindowWorkspace.name, privacy: .public) newFocus=\(fdWin(deadWindowFocus.windowOrNil), privacy: .public)")
                     _ = setFocus(to: deadWindowFocus)
                     // Guard against "Apple Reminders popup" bug: https://github.com/nikitabobko/AeroSpace/issues/201
                     if focus.windowOrNil?.app.pid != app.pid {
@@ -110,6 +111,7 @@ final class MacWindow: Window {
     override func isMacosMinimized(_ cm: CancellationMode) async throws -> Bool { try await macApp.isMacosNativeMinimized(windowId, cm) == true }
 
     @MainActor override func nativeFocus() {
+        focusDebugLog.notice("nativeFocus event=\(fdEvent, privacy: .public) target=\(fdWin(self), privacy: .public)")
         macApp.nativeFocus(windowId)
     }
 

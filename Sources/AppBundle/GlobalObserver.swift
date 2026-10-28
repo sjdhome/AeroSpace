@@ -9,6 +9,8 @@ enum GlobalObserver {
             return
         }
         let notifName = notification.name.rawValue
+        let notifApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        focusDebugLog.notice("globalNotif name=\(notifName, privacy: .public) app=\(notifApp?.bundleIdentifier ?? "nil", privacy: .public)/\(notifApp?.processIdentifier ?? 0, privacy: .public)")
         Task.startUnstructured { @MainActor in
             if !TrayMenuModel.shared.isEnabled { return }
             if notifName == NSWorkspace.didActivateApplicationNotification.rawValue {
@@ -62,15 +64,26 @@ enum GlobalObserver {
                 try await resetManipulatedWithMouseIfPossible()
                 let mouseLocation = mouseLocation
                 let clickedMonitor = mouseLocation.monitorApproximation
+                let inVisibleRect = clickedMonitor.visibleRect.contains(mouseLocation)
+                let frontmost = NSWorkspace.shared.frontmostApplication
+                focusDebugLog.notice(
+                    "mouseUp loc=\(mouseLocation.debugDescription, privacy: .public) clickedMon=\(clickedMonitor.monitorId_oneBased ?? 0, privacy: .public) clickedMonActiveWs=\(clickedMonitor.activeWorkspace.name, privacy: .public) inVisibleRect=\(inVisibleRect, privacy: .public) focus=\(fdFocus(focus), privacy: .public) frontmost=\(frontmost?.bundleIdentifier ?? "nil", privacy: .public)/\(frontmost?.processIdentifier ?? 0, privacy: .public)",
+                )
                 switch true {
                     // Detect clicks on desktop of different monitors
-                    case clickedMonitor.visibleRect.contains(mouseLocation) && clickedMonitor.activeWorkspace != focus.workspace:
+                    case inVisibleRect && clickedMonitor.activeWorkspace != focus.workspace:
+                        focusDebugLog.notice("mouseUp branch=focusWorkspace ws=\(clickedMonitor.activeWorkspace.name, privacy: .public)")
                         _ = try await runLightSession(.globalObserverLeftMouseUp, token) {
-                            clickedMonitor.activeWorkspace.focusWorkspace()
+                            let ws = clickedMonitor.activeWorkspace
+                            focusDebugLog.notice(
+                                "mouseUp body focusBeforeBody=\(fdFocus(focus), privacy: .public) clickedMonActiveWs=\(ws.name, privacy: .public) \(fdMru(ws), privacy: .public)",
+                            )
+                            return ws.focusWorkspace()
                         }
                     // Detect close button clicks for unfocused windows. Yes, kAXUIElementDestroyedNotification is that unreliable
                     //  And trigger new window detection that could be delayed due to mouseDown event
                     default:
+                        focusDebugLog.notice("mouseUp branch=scheduleRefresh")
                         scheduleCancellableCompleteRefreshSession(.globalObserverLeftMouseUp)
                 }
             }

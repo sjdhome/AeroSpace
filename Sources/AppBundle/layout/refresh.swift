@@ -33,6 +33,7 @@ func runHeavyCompleteRefreshSession(
     let res = await Result {
         try await $refreshSessionEvent.withValue(event) {
             let nativeFocused = try await getNativeFocusedWindow(.cancellable)
+            focusDebugLog.info("heavySession event=\(fdEvent, privacy: .public) nativeFocused=\(fdWin(nativeFocused), privacy: .public) focus=\(fdFocus(focus), privacy: .public)")
             if let nativeFocused { try await debugWindowsIfRecording(nativeFocused, .cancellable) }
             updateFocusCache(nativeFocused)
 
@@ -50,7 +51,9 @@ func runHeavyCompleteRefreshSession(
     }
     switch res {
         case .success(()): break
-        case .failure(let err as CancellationError): check(assumeCancellable, "Non cancellable refresh session was canceled: \(err) (\(type(of: err)))")
+        case .failure(let err as CancellationError):
+            focusDebugLog.info("heavySession cancelled event=\(event.description, privacy: .public)")
+            check(assumeCancellable, "Non cancellable refresh session was canceled: \(err) (\(type(of: err)))")
         case .failure(let err): die("Illegal error: \(err)")
     }
 }
@@ -67,6 +70,7 @@ func runLightSession<T>(
     activeRefreshTask = nil
     return try await $refreshSessionEvent.withValue(event) {
         let nativeFocused = try await getNativeFocusedWindow(.cancellable)
+        focusDebugLog.notice("lightSession begin event=\(fdEvent, privacy: .public) nativeFocused=\(fdWin(nativeFocused), privacy: .public) focus=\(fdFocus(focus), privacy: .public)")
         if let nativeFocused { try await debugWindowsIfRecording(nativeFocused, .cancellable) }
         updateFocusCache(nativeFocused)
         let focusBefore = focus.windowOrNil
@@ -80,6 +84,7 @@ func runLightSession<T>(
         updateTrayText()
         SecureInputPanel.shared.refresh()
         if !event.isFocusFollowsMouse { try await layoutWorkspaces() }
+        focusDebugLog.notice("lightSession end event=\(fdEvent, privacy: .public) focusBefore=\(fdWin(focusBefore), privacy: .public) focusAfter=\(fdWin(focusAfter), privacy: .public) willNativeFocus=\(focusBefore != focusAfter, privacy: .public)")
         if focusBefore != focusAfter {
             focusAfter?.nativeFocus() // syncFocusToMacOs
         }
