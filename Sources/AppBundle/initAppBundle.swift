@@ -5,6 +5,7 @@ import Foundation
 @MainActor public func initAppBundle() {
     Task.startUnstructured {
         initTerminationHandler()
+        interceptSigtermForPersistedWorld()
         unsafe _isCli = false
         initServerArgs()
         await waitForAccessibilityPermission_nonCancellable()
@@ -29,7 +30,9 @@ import Foundation
             layoutWorkspaces: false,
         )
         try await runLightSession(.startup, .forceRun) {
-            smartLayoutAtStartup()
+            if try await !restorePersistedWorldIfExists() {
+                smartLayoutAtStartup()
+            }
             _ = await config.afterStartupCommand.run(.defaultEnv, .emptyStdin)
         }
     }
