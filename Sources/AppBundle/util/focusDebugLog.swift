@@ -4,7 +4,7 @@ import os
 
 // Temporary diagnostics for the "mouse click on another monitor jumps to the workspace's MRU window" bug.
 // Lives only on the local debug-focus-jump-on-mouse-click branch. Remove the branch once the cause is found.
-// Read with: /usr/bin/log stream --level info --predicate 'subsystem == "bobko.aerospace.debug" AND category == "focus-debug"'
+// Read with: /usr/bin/log stream --level info --predicate 'subsystem == "bobko.aerospace" AND category == "focus-debug"'
 // Window titles are deliberately not logged.
 let focusDebugLog = Logger(subsystem: aeroSpaceAppId, category: "focus-debug")
 
