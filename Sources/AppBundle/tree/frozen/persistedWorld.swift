@@ -3,7 +3,7 @@ import Common
 
 // Keeps the whole layout across an AeroSpace restart. Local debug-focus-jump-on-mouse-click branch only.
 // On termination (menu Quit or SIGTERM) the world is written to persistedWorldUrl.
-// On the next startup it is restored with the same code as the closed windows cache, plus focus and MRU order.
+// On the next startup it is restored with the same code as the closed windows cache, plus the focus.
 // The file is renamed to *.restored before it is used, so it is applied at most once.
 // Files older than persistedWorldMaxAge are ignored, e.g. a world written at logout and read at the next login.
 
@@ -65,17 +65,11 @@ private var persistedWorldUrl: URL {
         windowIds: allWs.flatMap { collectAllWindowIdsRecursive($0) }.toSet(),
     )
     world.focusedWindowId = focus.windowOrNil?.windowId
-    world.mruReplay = Dictionary(uniqueKeysWithValues: allWs.map { ($0.name, mruReplayOrder($0)) })
     return world
 }
 
 @MainActor func applyPersistedWorld(_ world: FrozenWorld) async throws {
     try await restoreFrozenWorld(world, skipMissingWindows: true)
-    for ids in (world.mruReplay ?? [:]).values {
-        for id in ids {
-            Window.get(byId: id)?.markAsMostRecentChild()
-        }
-    }
     if let id = world.focusedWindowId {
         _ = Window.get(byId: id)?.focusWindow()
     }

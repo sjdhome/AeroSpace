@@ -69,9 +69,16 @@ enum GlobalObserver {
                 focusDebugLog.notice(
                     "mouseUp loc=\(mouseLocation.debugDescription, privacy: .public) clickedMon=\(clickedMonitor.monitorId_oneBased ?? 0, privacy: .public) clickedMonActiveWs=\(clickedMonitor.activeWorkspace.name, privacy: .public) inVisibleRect=\(inVisibleRect, privacy: .public) focus=\(fdFocus(focus), privacy: .public) frontmost=\(frontmost?.bundleIdentifier ?? "nil", privacy: .public)/\(frontmost?.processIdentifier ?? 0, privacy: .public)",
                 )
+                let isOtherMonitorClick = inVisibleRect && clickedMonitor.activeWorkspace != focus.workspace
+                // A click on a window is left to macOS: the default branch picks the clicked window up from the native focus.
+                //  Focusing the workspace instead would focus its MRU window, not the clicked one. The native focus can't be
+                //  used to tell the desktop from a window here, because the clicked app is often not frontmost yet at mouse up.
+                //  nil (the hit test failed) keeps the workspace switch.
+                let isWindowClick = isOtherMonitorClick ? await isAxWindowUnderMouse(mouseLocation) : nil
+                focusDebugLog.notice("mouseUp isOtherMonitorClick=\(isOtherMonitorClick, privacy: .public) isWindowClick=\(isWindowClick.map(String.init) ?? "nil", privacy: .public)")
                 switch true {
                     // Detect clicks on desktop of different monitors
-                    case inVisibleRect && clickedMonitor.activeWorkspace != focus.workspace:
+                    case isOtherMonitorClick && isWindowClick != true:
                         focusDebugLog.notice("mouseUp branch=focusWorkspace ws=\(clickedMonitor.activeWorkspace.name, privacy: .public)")
                         _ = try await runLightSession(.globalObserverLeftMouseUp, token) {
                             let ws = clickedMonitor.activeWorkspace

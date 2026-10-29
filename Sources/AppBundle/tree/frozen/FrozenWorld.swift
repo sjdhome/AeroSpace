@@ -2,10 +2,8 @@ struct FrozenWorld: Codable {
     let workspaces: [FrozenWorkspace]
     let monitors: [FrozenMonitor]
     let windowIds: Set<UInt32>
-    /// Only used by the persisted world, see persistedWorld.swift. The closed windows cache doesn't restore focus or MRU
+    /// Only used by the persisted world, see persistedWorld.swift. The closed windows cache doesn't restore the focus
     var focusedWindowId: UInt32? = nil
-    /// Workspace name -> window ids in the order to replay markAsMostRecentChild (least recent first)
-    var mruReplay: [String: [UInt32]]? = nil
 }
 
 func collectAllWindowIdsRecursive(_ node: TreeNode) -> [UInt32] {
