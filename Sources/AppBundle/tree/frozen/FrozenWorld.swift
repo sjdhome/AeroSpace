@@ -12,3 +12,11 @@ func collectAllWindowIdsRecursive(_ node: TreeNode) -> [UInt32] {
     }
     return result
 }
+
+/// Replaying markAsMostRecentChild over the returned windows in order rebuilds the MRU order of every node in the subtree
+@MainActor func mruReplayOrder(_ node: TreeNode) -> [UInt32] {
+    if let window = node as? Window { return [window.windowId] }
+    let mru = Array(node._mruChildren) // Most recent first
+    let neverMarked = node.children.filter { child in !mru.contains { $0 === child } }
+    return (neverMarked + mru.reversed()).flatMap { mruReplayOrder($0) }
+}
